@@ -1,31 +1,17 @@
 package com.fxmlrubic;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
-import javafx.geometry.Point3D;
 import javafx.scene.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.PhongMaterial;
-import javafx.scene.shape.Box;
-import javafx.scene.shape.Sphere;
-import javafx.scene.transform.Rotate;
-import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 
-import java.util.concurrent.atomic.AtomicReference;
-
-public class HelloApplication extends Application {
+public class Main extends Application {
     private float moveSpeed = 0.05f, mouseSensitivity = 0.5f, distance = 2.0f, horizontalAngle = 0, verticalAngle = 0;
     private double oldMouseX = 0, oldMouseY = 0, newMouseX, newMouseY;
 
     @Override
     public void start(Stage stage) throws Exception {
-        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("hello-view.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 320, 240, true);
 
         /*Translate pivot = new Translate();

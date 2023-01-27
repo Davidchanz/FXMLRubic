@@ -1,2 +1,7 @@
-package com.fxmlrubic;public class SuperMain {
+package com.fxmlrubic;
+
+public class SuperMain {
+    public static void main(String[] args) {
+        Main.main(args);
+    }
 }

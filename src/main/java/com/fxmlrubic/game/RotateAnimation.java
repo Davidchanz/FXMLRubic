@@ -1,9 +1,10 @@
-package com.fxmlrubic;
+package com.fxmlrubic.game;
 
+import com.fxmlrubic.controller.GameController;
+import com.fxmlrubic.game.Cube;
+import com.fxmlrubic.utils.FunctionalInterface;
 import javafx.animation.AnimationTimer;
 import javafx.scene.transform.Rotate;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RotateAnimation extends AnimationTimer {
     Rotate rotate;
@@ -29,11 +30,11 @@ public class RotateAnimation extends AnimationTimer {
         if(rotate.getAngle() >= 90){
             stop();
             rotate.setAngle(90);
-            HelloController.isRotate.set(false);
+            GameController.isRotate.set(false);
         } else if (rotate.getAngle() <= -90) {
             stop();
             rotate.setAngle(-90);
-            HelloController.isRotate.set(false);
+            GameController.isRotate.set(false);
         }
     }
 }

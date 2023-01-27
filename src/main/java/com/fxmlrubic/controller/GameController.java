@@ -1,31 +1,18 @@
-package com.fxmlrubic;
+package com.fxmlrubic.controller;
 
+import com.fxmlrubic.game.Cube;
+import com.fxmlrubic.game.RotateAnimation;
+import com.fxmlrubic.game.RubicGroup;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
-import javafx.animation.RotateTransition;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Point3D;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
-import javafx.scene.SubScene;
-import javafx.scene.control.Label;
-import javafx.scene.control.Slider;
-import javafx.scene.effect.Light;
 import javafx.scene.image.Image;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.Material;
 import javafx.scene.paint.PhongMaterial;
-import javafx.scene.shape.Box;
-import javafx.scene.shape.MeshView;
-import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.TriangleMesh;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Transform;
@@ -38,7 +25,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class HelloController implements Initializable {
+public class GameController implements Initializable {
     public Group mainScene;
     Group rubicGroup;
     RubicGroup subScene;
@@ -46,17 +33,19 @@ public class HelloController implements Initializable {
     int size;
     int r_size;
     Cube[][][] rubic;
-    static AtomicBoolean isRotate = new AtomicBoolean();
-    Cube lc;
-    Cube rc;
-    Cube uc;
-    Cube dc;
-    Cube fc;
-    Cube bc;
+    static public AtomicBoolean isRotate = new AtomicBoolean();
+    Cube lc, rc, uc, dc, fc, bc;
     String currentFormula;
     Timeline timeline;
-    private float moveSpeed = 0.05f, mouseSensitivity = 0.5f, distance = 2.0f, horizontalAngle = 0, verticalAngle = 0;
+    private final float moveSpeed = 0.05f;
+    private final float mouseSensitivity = 0.5f;
+    private float horizontalAngle = 0;
+    private float verticalAngle = 0;
     private double oldMouseX = 0, oldMouseY = 0, newMouseX, newMouseY;
+
+    //TODO UI
+    // Click prime button and choose center of  mechanical rotation next move mouse with primary button down and rotate in right or left
+    // Make fast animation of break pass in one more override of setRotate function rotation speed
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -89,6 +78,7 @@ public class HelloController implements Initializable {
             newMouseX = event.getSceneX();
             newMouseY = event.getSceneY();
         });
+
         subScene.setOnMouseDragged(event -> {
             newMouseX = event.getSceneX();
             newMouseY = event.getSceneY();

@@ -1,4 +1,4 @@
-package com.fxmlrubic;
+package com.fxmlrubic.game;
 
 import javafx.scene.Group;
 import javafx.scene.SceneAntialiasing;
