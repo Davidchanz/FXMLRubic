@@ -38,7 +38,8 @@ public class GameController implements Initializable {
     private Cube lc, rc, uc, dc, fc, bc;
     private Cube rubicCenter;
     private String currentFormula = "";
-    private Timeline timeline;
+    private Timeline buildTimeLine;
+    private Timeline disBuildTimeLine;
     private final float mouseSensitivity = 0.5f;
     private float horizontalAngle = 0;
     private float verticalAngle = 0;
@@ -47,8 +48,8 @@ public class GameController implements Initializable {
     private final AtomicBoolean isBuilding = new AtomicBoolean();
     private final ArrayList<Cube> activeManualCube = new ArrayList<>();
     private int lastDir;
+    private String disBuildingFormula;
     //TODO UI
-    // Make fast animation of break pass in one more override of setRotate function rotation speed
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -106,8 +107,24 @@ public class GameController implements Initializable {
         subScene.setFocusTraversable(true);
         subScene.requestFocus();
 
-        timeline = new Timeline(new KeyFrame(Duration.millis(100), this::building));
-        timeline.setCycleCount(Timeline.INDEFINITE);
+        buildTimeLine = new Timeline(new KeyFrame(Duration.millis(100), this::building));
+        buildTimeLine.setCycleCount(Timeline.INDEFINITE);
+
+        disBuildTimeLine = new Timeline(new KeyFrame(Duration.millis(10), this::disBuilding));
+        disBuildTimeLine.setCycleCount(Timeline.INDEFINITE);
+    }
+
+    private void disBuilding(ActionEvent event) {
+        if(!isRotate.get()) {
+            isRotate.set(true);
+            build(disBuildingFormula.charAt(0), true);
+            disBuildingFormula = disBuildingFormula.substring(1);
+            if(disBuildingFormula.length() == 0) {
+                disBuildTimeLine.stop();
+                disBuildingFormula = "";
+                isBuilding.set(false);
+            }
+        }
     }
 
     private void onCenterReleased() {
@@ -218,7 +235,7 @@ public class GameController implements Initializable {
             build(currentFormula.charAt(currentFormula.length()-1), false);
             currentFormula = currentFormula.substring(0, currentFormula.length()-1);
             if(currentFormula.length() == 0) {
-                timeline.stop();
+                buildTimeLine.stop();
                 currentFormula = "";
                 isBuilding.set(false);
             }
@@ -332,19 +349,22 @@ public class GameController implements Initializable {
     }
 
     public void disBuild(String formula){
+        StringBuilder disBuildingFormulaBuffer = new StringBuilder();
         for (int u = 0; u < formula.length(); u++) {
             if(Character.isUpperCase(formula.charAt(u)))
-                build(Character.toLowerCase(formula.charAt(u)), true);
+                disBuildingFormulaBuffer.append(Character.toLowerCase(formula.charAt(u)));
             else if(Character.isLowerCase(formula.charAt(u)))
-                build(Character.toUpperCase(formula.charAt(u)), true);
+                disBuildingFormulaBuffer.append(Character.toUpperCase(formula.charAt(u)));
         }
+        disBuildingFormula = disBuildingFormulaBuffer.toString();
+        isBuilding.set(true);
+        disBuildTimeLine.play();
     }
 
     public void build(char c, boolean permanent){
         if(isManualControl.get())
             return;
-        if(!permanent)
-            isRotate.set(true);
+        isRotate.set(true);
         switch (c) {
             case 'r' -> {
                 for(var cube: boxes) {
@@ -354,7 +374,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, 1, rc);
                         else
-                            setPermanentRotate(cube, 1, rc);
+                            setFastRotate(cube, 1, rc);
                     }
                 }
             }
@@ -366,7 +386,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, 1, lc);
                         else
-                            setPermanentRotate(cube, 1, lc);
+                            setFastRotate(cube, 1, lc);
                     }
                 }
             }
@@ -378,7 +398,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, 1, uc);
                         else
-                            setPermanentRotate(cube, 1, uc);
+                            setFastRotate(cube, 1, uc);
                     }
                 }
             }
@@ -390,7 +410,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, 1, dc);
                         else
-                            setPermanentRotate(cube, 1, dc);
+                            setFastRotate(cube, 1, dc);
                     }
                 }
             }
@@ -402,7 +422,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, 1, fc);
                         else
-                            setPermanentRotate(cube, 1, fc);
+                            setFastRotate(cube, 1, fc);
                     }
                 }
             }
@@ -414,7 +434,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, 1, bc);
                         else
-                            setPermanentRotate(cube, 1, bc);
+                            setFastRotate(cube, 1, bc);
                     }
                 }
             }
@@ -426,7 +446,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, -1, rc);
                         else
-                            setPermanentRotate(cube, -1, rc);
+                            setFastRotate(cube, -1, rc);
                     }
                 }
             }
@@ -438,7 +458,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, -1, lc);
                         else
-                            setPermanentRotate(cube, -1, lc);
+                            setFastRotate(cube, -1, lc);
                     }
                 }
             }
@@ -450,7 +470,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, -1, uc);
                         else
-                            setPermanentRotate(cube, -1, uc);
+                            setFastRotate(cube, -1, uc);
                     }
                 }
             }
@@ -462,7 +482,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, -1, dc);
                         else
-                            setPermanentRotate(cube, -1, dc);
+                            setFastRotate(cube, -1, dc);
                     }
                 }
             }
@@ -474,7 +494,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, -1, fc);
                         else
-                            setPermanentRotate(cube, -1, fc);
+                            setFastRotate(cube, -1, fc);
                     }
                 }
             }
@@ -486,7 +506,7 @@ public class GameController implements Initializable {
                         if(!permanent)
                             setRotate(cube, -1, bc);
                         else
-                            setPermanentRotate(cube, -1, bc);
+                            setFastRotate(cube, -1, bc);
                     }
                 }
             }
@@ -523,7 +543,7 @@ public class GameController implements Initializable {
         box.rotateAnimation.start();
     }
 
-    public void setPermanentRotate(Cube box, int dir, Cube center){
+    public void setFastRotate(Cube box, int dir, Cube center){
         Rotate rotate = new Rotate();
 
         var tr = box.getTransforms().toArray(new Transform[0]);
@@ -545,10 +565,12 @@ public class GameController implements Initializable {
         rotate.setPivotX(x * size);
         rotate.setPivotY(y * size);
         rotate.setPivotZ(z * size);
-        rotate.setAngle(90*dir);
 
         box.getTransforms().add(rotate);
         box.getTransforms().addAll(tr);
+
+        box.rotateAnimation = new RotateAnimation(box, rotate, 2*dir);
+        box.rotateAnimation.start();
     }
 
     public void setPermanentRotate(Cube box, int dir, double speed, Cube center){
@@ -606,9 +628,9 @@ public class GameController implements Initializable {
     }
 
     public void buildOnAction() {
-        if (!isRotate.get() && !currentFormula.isEmpty() && timeline.getStatus() == Animation.Status.STOPPED) {
+        if (!isRotate.get() && !currentFormula.isEmpty() && buildTimeLine.getStatus() == Animation.Status.STOPPED) {
             isBuilding.set(true);
-            timeline.play();
+            buildTimeLine.play();
         }
     }
 }
