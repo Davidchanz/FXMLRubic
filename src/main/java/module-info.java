@@ -12,6 +12,4 @@ module com.fxmlrubic {
     opens com.fxmlrubic.controller to javafx.fxml;
     exports com.fxmlrubic.game;
     opens com.fxmlrubic.game to javafx.fxml;
-    exports com.fxmlrubic.utils;
-    opens com.fxmlrubic.utils to javafx.fxml;
 }

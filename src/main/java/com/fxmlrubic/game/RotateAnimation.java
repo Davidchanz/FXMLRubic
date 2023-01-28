@@ -1,8 +1,6 @@
 package com.fxmlrubic.game;
 
 import com.fxmlrubic.controller.GameController;
-import com.fxmlrubic.game.Cube;
-import com.fxmlrubic.utils.FunctionalInterface;
 import javafx.animation.AnimationTimer;
 import javafx.scene.transform.Rotate;
 
