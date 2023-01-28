@@ -29,26 +29,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GameController implements Initializable {
     public Group mainScene;
-    Group rubicGroup;
-    RubicGroup subScene;
-    ArrayList<Cube> boxes;
-    int size;
-    int r_size;
-    Cube[][][] rubic;
-    static public AtomicBoolean isRotate = new AtomicBoolean();
-    Cube lc, rc, uc, dc, fc, bc;
-    Cube rubicCenter;
-    String currentFormula;
-    Timeline timeline;
+    public Group rubicGroup;
+    public RubicGroup subScene;
+    public ArrayList<Cube> boxes;
+    public int size;
+    public int r_size;
+    public Cube[][][] rubic;
+    public static AtomicBoolean isRotate = new AtomicBoolean();
+    private Cube lc, rc, uc, dc, fc, bc;
+    private Cube rubicCenter;
+    private String currentFormula;
+    private Timeline timeline;
     private final float mouseSensitivity = 0.5f;
     private float horizontalAngle = 0;
     private float verticalAngle = 0;
-    private double oldMouseX = 0, oldMouseY = 0, newMouseX, newMouseY, mouseOnCenterX, mouseOnCenterY;
-    private AtomicBoolean isManualControl = new AtomicBoolean();
-    ArrayList<Cube> activeManualCube = new ArrayList<>();
-    int lastDir;
+    private double oldMouseX = 0, oldMouseY = 0, newMouseX, newMouseY, mouseOnCenterX;
+    private final AtomicBoolean isManualControl = new AtomicBoolean();
+    private final ArrayList<Cube> activeManualCube = new ArrayList<>();
+    private int lastDir;
     //TODO UI
-    // Click prime button and choose center of  mechanical rotation next move mouse with primary button down and rotate in right or left
     // Make fast animation of break pass in one more override of setRotate function rotation speed
 
     @Override
@@ -93,11 +92,12 @@ public class GameController implements Initializable {
                         rubicCenter = rubic[i][j][k];
                     }
                 }
+
         Cube[] centers = {lc,rc,uc,dc,fc,bc};
         for(var it: centers) {
             it.setOnMousePressed((event) -> onCenterClicked(event, it));
             it.setOnMouseDragged((event) -> onCenterDragged(event, it));
-            it.setOnMouseReleased((event) -> onCenterReleased(event, it));
+            it.setOnMouseReleased((event) -> onCenterReleased());
         }
 
         subScene.setCamera(createCamera());
@@ -108,7 +108,7 @@ public class GameController implements Initializable {
         timeline.setCycleCount(Timeline.INDEFINITE);
     }
 
-    private void onCenterReleased(MouseEvent event, Cube it) {
+    private void onCenterReleased() {
         if (isManualControl.get()) {
             for (var cube: activeManualCube){
                 setRotateToEnd(cube, lastDir);
@@ -123,8 +123,6 @@ public class GameController implements Initializable {
             isManualControl.set(true);
 
             mouseOnCenterX = event.getSceneX();
-            mouseOnCenterY = event.getSceneY();
-
             activeManualCube.clear();
             for(var cube: boxes) {
                 long x = -1;
@@ -251,7 +249,7 @@ public class GameController implements Initializable {
                         -hw, -hh, -hd,
                 };
 
-        float tex[] = {
+        float[] tex = {
                 100f / L,   0f / H,
                 200f / L,   0f / H,
                 0f / L, 100f / H,
@@ -592,67 +590,67 @@ public class GameController implements Initializable {
         box.rotateAnimation.start();
     }
 
-    public void rotateR(ActionEvent actionEvent) {
+    public void rotateR() {
         if(!isRotate.get())
             build('R', false);
     }
 
-    public void rotateL(ActionEvent actionEvent) {
+    public void rotateL() {
         if(!isRotate.get())
             build('L', false);
     }
 
-    public void rotateU(ActionEvent actionEvent) {
+    public void rotateU() {
         if(!isRotate.get())
             build('U', false);
     }
 
-    public void rotateD(ActionEvent actionEvent) {
+    public void rotateD() {
         if(!isRotate.get())
             build('D', false);
     }
 
-    public void rotateF(ActionEvent actionEvent) {
+    public void rotateF() {
         if(!isRotate.get())
             build('F', false);
     }
 
-    public void rotateB(ActionEvent actionEvent) {
+    public void rotateB() {
         if(!isRotate.get())
             build('B', false);
     }
 
-    public void rotate_r(ActionEvent actionEvent) {
+    public void rotate_r() {
         if(!isRotate.get())
             build('r', false);
     }
 
-    public void rotate_l(ActionEvent actionEvent) {
+    public void rotate_l() {
         if(!isRotate.get())
             build('l', false);
     }
 
-    public void rotate_u(ActionEvent actionEvent) {
+    public void rotate_u() {
         if(!isRotate.get())
             build('u', false);
     }
 
-    public void rotate_d(ActionEvent actionEvent) {
+    public void rotate_d() {
         if(!isRotate.get())
             build('d', false);
     }
 
-    public void rotate_f(ActionEvent actionEvent) {
+    public void rotate_f() {
         if(!isRotate.get())
             build('f', false);
     }
 
-    public void rotate_b(ActionEvent actionEvent) {
+    public void rotate_b() {
         if(!isRotate.get())
             build('b', false);
     }
 
-    public void disBuildOnAction(ActionEvent actionEvent) {
+    public void disBuildOnAction() {
         if (!isRotate.get()) {
             isRotate.set(true);
             boxes.forEach(cube -> cube.getTransforms().clear());
@@ -661,7 +659,7 @@ public class GameController implements Initializable {
         }
     }
 
-    public void buildOnAction(ActionEvent actionEvent) {
+    public void buildOnAction() {
         if (isRotate.get() && currentFormula != null && timeline.getStatus() != Animation.Status.RUNNING) {
             isRotate.set(false);
             timeline.play();
