@@ -49,13 +49,12 @@ public class GameController implements Initializable {
     private final ArrayList<Cube> activeManualCube = new ArrayList<>();
     private int lastDir;
     private String disBuildingFormula;
-    //TODO UI
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         rubicGroup = new Group();
         subScene = new SubScene(rubicGroup, 600,600, true, SceneAntialiasing.BALANCED);
-        subScene.setFill(Color.ALICEBLUE);
+        subScene.setFill(Color.TRANSPARENT);
         rubicGroup.setManaged(false);
         mainScene.getChildren().add(subScene);
 
@@ -103,7 +102,13 @@ public class GameController implements Initializable {
             it.setOnMouseReleased((event) -> onCenterReleased());
         }
 
-        subScene.setCamera(createCamera());
+        Camera camera = createCamera();
+
+        AmbientLight ambientLight = new AmbientLight();
+        ambientLight.setColor(new Color(0.9,0.9,0.9,1));
+        rubicGroup.getChildren().add(ambientLight);
+
+        subScene.setCamera(camera);
         subScene.setFocusTraversable(true);
         subScene.requestFocus();
 
