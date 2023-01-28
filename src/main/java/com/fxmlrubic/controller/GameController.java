@@ -9,9 +9,11 @@ import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.geometry.Point3D;
+import javafx.scene.Camera;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.image.Image;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.TriangleMesh;
 import javafx.scene.transform.Rotate;
@@ -35,14 +37,16 @@ public class GameController implements Initializable {
     Cube[][][] rubic;
     static public AtomicBoolean isRotate = new AtomicBoolean();
     Cube lc, rc, uc, dc, fc, bc;
+    Cube rubicCenter;
     String currentFormula;
     Timeline timeline;
-    private final float moveSpeed = 0.05f;
     private final float mouseSensitivity = 0.5f;
     private float horizontalAngle = 0;
     private float verticalAngle = 0;
-    private double oldMouseX = 0, oldMouseY = 0, newMouseX, newMouseY;
-
+    private double oldMouseX = 0, oldMouseY = 0, newMouseX, newMouseY, mouseOnCenterX, mouseOnCenterY;
+    private AtomicBoolean isManualControl = new AtomicBoolean();
+    ArrayList<Cube> activeManualCube = new ArrayList<>();
+    int lastDir;
     //TODO UI
     // Click prime button and choose center of  mechanical rotation next move mouse with primary button down and rotate in right or left
     // Make fast animation of break pass in one more override of setRotate function rotation speed
@@ -54,61 +58,7 @@ public class GameController implements Initializable {
         rubicGroup.setManaged(false);
         mainScene.getChildren().add(subScene);
 
-
-        Translate pivot = new Translate();
-        pivot.setX(10);
-        pivot.setY(10);
-        pivot.setZ(10);
-
-        Rotate yRotate = new Rotate(0, Rotate.Y_AXIS);
-        Rotate xRotate = new Rotate(0, Rotate.X_AXIS);
-        Rotate zRotate = new Rotate(0, Rotate.Z_AXIS);
-
-        // Create and position camera
-        PerspectiveCamera camera = new PerspectiveCamera(true);
-        camera.getTransforms().addAll (
-                pivot,
-                yRotate,
-                xRotate,
-                zRotate,
-                new Translate(0,0,-100)
-        );
-
-        subScene.setOnMouseClicked(event -> {
-            newMouseX = event.getSceneX();
-            newMouseY = event.getSceneY();
-        });
-
-        subScene.setOnMouseDragged(event -> {
-            newMouseX = event.getSceneX();
-            newMouseY = event.getSceneY();
-
-            float dx = (float) (event.getSceneX() - oldMouseX);
-            float dy = (float) (event.getSceneY() - oldMouseY);
-
-            if (event.isPrimaryButtonDown()) {
-                verticalAngle -= dy * mouseSensitivity;
-                horizontalAngle += dx * mouseSensitivity;
-            }
-
-            xRotate.setAngle(+verticalAngle);
-            yRotate.setAngle(-horizontalAngle);
-
-            oldMouseX = newMouseX;
-            oldMouseY = newMouseY;
-        });
-
-        //camera.setTranslateZ(-000);
-        camera.setNearClip(1);
-        camera.setFarClip(10000);
-
-        subScene.setCamera(camera);
-
-
-
-        subScene.setFocusTraversable(true);
-        subScene.requestFocus();
-
+        isManualControl.set(false);
         isRotate.set(false);
         r_size = 3;
         size = 10;
@@ -123,23 +73,140 @@ public class GameController implements Initializable {
 
                     if(i == 0 && j == 1 && k == 1){
                         lc = rubic[i][j][k];
+                        lc.setAxis(new Point3D(1,0,0));
                     }else if(i == r_size-1 && j == 1 && k == 1){
                         rc = rubic[i][j][k];
+                        rc.setAxis(new Point3D(1,0,0));
                     }else if(i == 1 && j == 0 && k == 1){
                         uc = rubic[i][j][k];
+                        uc.setAxis(new Point3D(0,1,0));
                     }else if(i == 1 && j == r_size-1 && k == 1){
                         dc = rubic[i][j][k];
+                        dc.setAxis(new Point3D(0,1,0));
                     }else if(i == 1 && j == 1 && k == r_size-1){
                         fc = rubic[i][j][k];
+                        fc.setAxis(new Point3D(0,0,1));
                     }else if(i == 1 && j == 1 && k == 0){
                         bc = rubic[i][j][k];
-                    }
-                    if(i == 1 && j == 1 && k == 1){
-                        System.out.println(rubic[i][j][k].localToScene(0,0,0).getZ());
+                        bc.setAxis(new Point3D(0,0,1));
+                    }else if(i == 1 && j == 1 && k == 1){
+                        rubicCenter = rubic[i][j][k];
                     }
                 }
+        Cube[] centers = {lc,rc,uc,dc,fc,bc};
+        for(var it: centers) {
+            it.setOnMousePressed((event) -> onCenterClicked(event, it));
+            it.setOnMouseDragged((event) -> onCenterDragged(event, it));
+            it.setOnMouseReleased((event) -> onCenterReleased(event, it));
+        }
+
+        subScene.setCamera(createCamera());
+        subScene.setFocusTraversable(true);
+        subScene.requestFocus();
+
         timeline = new Timeline(new KeyFrame(Duration.millis(100), this::building));
         timeline.setCycleCount(Timeline.INDEFINITE);
+    }
+
+    private void onCenterReleased(MouseEvent event, Cube it) {
+        if (isManualControl.get()) {
+            for (var cube: activeManualCube){
+                setRotateToEnd(cube, lastDir);
+            }
+
+            isManualControl.set(false);
+        }
+    }
+
+    private void onCenterClicked(MouseEvent event, Cube center){
+        if(!isManualControl.get() && event.isPrimaryButtonDown()){
+            isManualControl.set(true);
+
+            mouseOnCenterX = event.getSceneX();
+            mouseOnCenterY = event.getSceneY();
+
+            activeManualCube.clear();
+            for(var cube: boxes) {
+                long x = -1;
+                if(center == rc){
+                    x = Math.round(center.localToScene(0,0,0).getX() - cube.localToScene(0,0,0).getX());
+                }else if(center == lc){
+                    x = Math.round(center.localToScene(0,0,0).getX() - cube.localToScene(0,0,0).getX());
+                }else if(center == uc){
+                    x = Math.round(center.localToScene(0,0,0).getY() - cube.localToScene(0,0,0).getY());
+                }else if(center == dc){
+                    x = Math.round(center.localToScene(0,0,0).getY() - cube.localToScene(0,0,0).getY());
+                }else if(center == fc){
+                    x = Math.round(center.localToScene(0,0,0).getZ() - cube.localToScene(0,0,0).getZ());
+                }else if(center == bc){
+                    x = Math.round(center.localToScene(0,0,0).getZ() - cube.localToScene(0,0,0).getZ());
+                }
+                if (x == 0) {
+                    activeManualCube.add(cube);
+                    cube.getTransforms().add(0, new Rotate());
+                }
+            }
+        }
+    }
+
+    private void onCenterDragged(MouseEvent event, Cube center){
+        if(isManualControl.get() && event.isPrimaryButtonDown() && !activeManualCube.isEmpty()){
+            if(event.getSceneX() > mouseOnCenterX)
+                lastDir = 1;
+            else
+                lastDir = -1;
+
+            for(var cube: activeManualCube){
+                setPermanentRotate(cube, lastDir, 1, center);
+            }
+            mouseOnCenterX = event.getSceneX();
+        }
+    }
+
+    private Camera createCamera(){
+        Translate pivot = new Translate();
+        pivot.setX(rubicCenter.localToScene(0,0,0).getX());
+        pivot.setY(rubicCenter.localToScene(0,0,0).getY());
+        pivot.setZ(rubicCenter.localToScene(0,0,0).getZ());
+
+        Rotate yRotate = new Rotate(0, Rotate.Y_AXIS);
+        Rotate xRotate = new Rotate(0, Rotate.X_AXIS);
+        Rotate zRotate = new Rotate(0, Rotate.Z_AXIS);
+
+        // Create and position camera
+        PerspectiveCamera camera = new PerspectiveCamera(true);
+        camera.getTransforms().addAll (
+                pivot,
+                yRotate,
+                xRotate,
+                zRotate,
+                new Translate(0,0,-120)
+        );
+
+        //TODO smooth rotation
+        subScene.setOnMouseDragged(event -> {
+            newMouseX = event.getSceneX();
+            newMouseY = event.getSceneY();
+
+            float dx = (float) (newMouseX - oldMouseX);
+            float dy = (float) (newMouseY - oldMouseY);
+
+            if (event.isSecondaryButtonDown()) {
+                verticalAngle -= dy * mouseSensitivity;
+                horizontalAngle += dx * mouseSensitivity;
+            }
+
+            xRotate.setAngle(+verticalAngle);
+            yRotate.setAngle(-horizontalAngle);
+
+            oldMouseX = newMouseX;
+            oldMouseY = newMouseY;
+        });
+
+        camera.setNearClip(1);
+        camera.setFarClip(10000);
+
+        return camera;
     }
 
     private void building(ActionEvent actionEvent) {
@@ -261,6 +328,8 @@ public class GameController implements Initializable {
     }
 
     public void disBuild(String formula){
+        for(var cube: boxes)
+            cube.getTransforms().clear();
         for (int u = 0; u < formula.length(); u++) {
             if(Character.isUpperCase(formula.charAt(u)))
                 build(Character.toLowerCase(formula.charAt(u)), true);
@@ -270,6 +339,8 @@ public class GameController implements Initializable {
     }
 
     public void build(char c, boolean permanent){
+        if(isManualControl.get())
+            return;
         if(!permanent)
             isRotate.set(true);
         switch (c) {
@@ -279,9 +350,9 @@ public class GameController implements Initializable {
                     var x = Math.round(center.localToScene(0,0,0).getX() - cube.localToScene(0,0,0).getX());
                     if (x == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(1, 0, 0), 1, rc);
+                            setRotate(cube, 1, rc);
                         else
-                            setPermanentRotate(cube, new Point3D(1, 0, 0), 1, rc);
+                            setPermanentRotate(cube, 1, rc);
                     }
                 }
             }
@@ -291,9 +362,9 @@ public class GameController implements Initializable {
                     var x = Math.round(center.localToScene(0,0,0).getX() - cube.localToScene(0,0,0).getX());
                     if (x == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(1, 0, 0), 1, lc);
+                            setRotate(cube, 1, lc);
                         else
-                            setPermanentRotate(cube, new Point3D(1, 0, 0), 1, lc);
+                            setPermanentRotate(cube, 1, lc);
                     }
                 }
             }
@@ -303,9 +374,9 @@ public class GameController implements Initializable {
                     var y = Math.round(center.localToScene(0,0,0).getY() - cube.localToScene(0,0,0).getY());
                     if (y == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(0, 1, 0), 1, uc);
+                            setRotate(cube, 1, uc);
                         else
-                            setPermanentRotate(cube, new Point3D(0, 1, 0), 1, uc);
+                            setPermanentRotate(cube, 1, uc);
                     }
                 }
             }
@@ -315,9 +386,9 @@ public class GameController implements Initializable {
                     var y = Math.round(center.localToScene(0,0,0).getY() - cube.localToScene(0,0,0).getY());
                     if (y == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(0, 1, 0), 1, dc);
+                            setRotate(cube, 1, dc);
                         else
-                            setPermanentRotate(cube, new Point3D(0, 1, 0), 1, dc);
+                            setPermanentRotate(cube, 1, dc);
                     }
                 }
             }
@@ -327,9 +398,9 @@ public class GameController implements Initializable {
                     var z = Math.round(center.localToScene(0,0,0).getZ() - cube.localToScene(0,0,0).getZ());
                     if (z == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(0, 0, 1), 1, fc);
+                            setRotate(cube, 1, fc);
                         else
-                            setPermanentRotate(cube, new Point3D(0, 0, 1), 1, fc);
+                            setPermanentRotate(cube, 1, fc);
                     }
                 }
             }
@@ -339,9 +410,9 @@ public class GameController implements Initializable {
                     var z = Math.round(center.localToScene(0,0,0).getZ() - cube.localToScene(0,0,0).getZ());
                     if (z == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(0, 0, 1), 1, bc);
+                            setRotate(cube, 1, bc);
                         else
-                            setPermanentRotate(cube, new Point3D(0, 0, 1), 1, bc);
+                            setPermanentRotate(cube, 1, bc);
                     }
                 }
             }
@@ -351,9 +422,9 @@ public class GameController implements Initializable {
                     var x = Math.round(center.localToScene(0,0,0).getX() - cube.localToScene(0,0,0).getX());
                     if (x == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(1, 0, 0), -1, rc);
+                            setRotate(cube, -1, rc);
                         else
-                            setPermanentRotate(cube, new Point3D(1, 0, 0), -1, rc);
+                            setPermanentRotate(cube, -1, rc);
                     }
                 }
             }
@@ -363,9 +434,9 @@ public class GameController implements Initializable {
                     var x = Math.round(center.localToScene(0,0,0).getX() - cube.localToScene(0,0,0).getX());
                     if (x == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(1, 0, 0), -1, lc);
+                            setRotate(cube, -1, lc);
                         else
-                            setPermanentRotate(cube, new Point3D(1, 0, 0), -1, lc);
+                            setPermanentRotate(cube, -1, lc);
                     }
                 }
             }
@@ -375,9 +446,9 @@ public class GameController implements Initializable {
                     var y = Math.round(center.localToScene(0,0,0).getY() - cube.localToScene(0,0,0).getY());
                     if (y == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(0, 1, 0), -1, uc);
+                            setRotate(cube, -1, uc);
                         else
-                            setPermanentRotate(cube, new Point3D(0, 1, 0), -1, uc);
+                            setPermanentRotate(cube, -1, uc);
                     }
                 }
             }
@@ -387,9 +458,9 @@ public class GameController implements Initializable {
                     var y = Math.round(center.localToScene(0,0,0).getY() - cube.localToScene(0,0,0).getY());
                     if (y == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(0, 1, 0), -1, dc);
+                            setRotate(cube, -1, dc);
                         else
-                            setPermanentRotate(cube, new Point3D(0, 1, 0), -1, dc);
+                            setPermanentRotate(cube, -1, dc);
                     }
                 }
             }
@@ -399,9 +470,9 @@ public class GameController implements Initializable {
                     var z = Math.round(center.localToScene(0,0,0).getZ() - cube.localToScene(0,0,0).getZ());
                     if (z == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(0, 0, 1), -1, fc);
+                            setRotate(cube, -1, fc);
                         else
-                            setPermanentRotate(cube, new Point3D(0, 0, 1), -1, fc);
+                            setPermanentRotate(cube, -1, fc);
                     }
                 }
             }
@@ -411,16 +482,16 @@ public class GameController implements Initializable {
                     var z = Math.round(center.localToScene(0,0,0).getZ() - cube.localToScene(0,0,0).getZ());
                     if (z == 0) {
                         if(!permanent)
-                            setRotate(cube, new Point3D(0, 0, 1), -1, bc);
+                            setRotate(cube, -1, bc);
                         else
-                            setPermanentRotate(cube, new Point3D(0, 0, 1), -1, bc);
+                            setPermanentRotate(cube, -1, bc);
                     }
                 }
             }
         }
     }
 
-    public void setRotate(Cube box, Point3D axis, int dir, Cube center){
+    public void setRotate(Cube box, int dir, Cube center){
         Rotate rotate = new Rotate();
 
         var tr = box.getTransforms().toArray(new Transform[0]);
@@ -438,7 +509,7 @@ public class GameController implements Initializable {
         if(z != 0){
             z /= Math.abs(z);
         }
-        rotate.setAxis(axis);
+        rotate.setAxis(center.getAxis());
         rotate.setPivotX(x * size);
         rotate.setPivotY(y * size);
         rotate.setPivotZ(z * size);
@@ -450,7 +521,7 @@ public class GameController implements Initializable {
         box.rotateAnimation.start();
     }
 
-    public void setPermanentRotate(Cube box, Point3D axis, int dir, Cube center){
+    public void setPermanentRotate(Cube box, int dir, Cube center){
         Rotate rotate = new Rotate();
 
         var tr = box.getTransforms().toArray(new Transform[0]);
@@ -468,7 +539,7 @@ public class GameController implements Initializable {
         if(z != 0){
             z /= Math.abs(z);
         }
-        rotate.setAxis(axis);
+        rotate.setAxis(center.getAxis());
         rotate.setPivotX(x * size);
         rotate.setPivotY(y * size);
         rotate.setPivotZ(z * size);
@@ -476,6 +547,49 @@ public class GameController implements Initializable {
 
         box.getTransforms().add(rotate);
         box.getTransforms().addAll(tr);
+    }
+
+    public void setPermanentRotate(Cube box, int dir, double speed, Cube center){
+        Rotate rotate = (Rotate) box.getTransforms().get(0);
+
+        var tr = box.getTransforms().toArray(new Transform[0]);
+        box.getTransforms().clear();
+
+        var x = center.localToScene(0,0,0).getX() - box.localToScene(0,0,0).getX();
+        var y = center.localToScene(0,0,0).getY() - box.localToScene(0,0,0).getY();
+        var z = center.localToScene(0,0,0).getZ() - box.localToScene(0,0,0).getZ();
+        if(x != 0){
+            x /= Math.abs(x);
+        }
+        if(y != 0){
+            y /= Math.abs(y);
+        }
+        if(z != 0){
+            z /= Math.abs(z);
+        }
+        rotate.setAxis(center.getAxis());
+        rotate.setPivotX(x * size);
+        rotate.setPivotY(y * size);
+        rotate.setPivotZ(z * size);
+        rotate.setAngle(rotate.getAngle()+speed*dir);
+
+        box.getTransforms().addAll(tr);
+    }
+
+    public void setRotateToEnd(Cube box, int dir){
+        Rotate rotate = (Rotate) box.getTransforms().get(0);
+
+        System.out.println(box.getTransforms().toArray(new Transform[0]).length);
+
+        box.getTransforms().remove(rotate);
+        var tr = box.getTransforms().toArray(new Transform[0]);
+        box.getTransforms().clear();
+
+        box.getTransforms().add(rotate);
+        box.getTransforms().addAll(tr);
+
+        box.rotateAnimation = new RotateAnimation(box, rotate, 0.5*dir);
+        box.rotateAnimation.start();
     }
 
     public void rotateR(ActionEvent actionEvent) {
