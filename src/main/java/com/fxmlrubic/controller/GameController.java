@@ -9,6 +9,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.geometry.Point3D;
 import javafx.scene.*;
+import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
@@ -36,13 +37,14 @@ public class GameController implements Initializable {
     public static AtomicBoolean isRotate = new AtomicBoolean();
     private Cube lc, rc, uc, dc, fc, bc;
     private Cube rubicCenter;
-    private String currentFormula;
+    private String currentFormula = "";
     private Timeline timeline;
     private final float mouseSensitivity = 0.5f;
     private float horizontalAngle = 0;
     private float verticalAngle = 0;
-    private double oldMouseX = 0, oldMouseY = 0, newMouseX, newMouseY, mouseOnCenterX;
+    private double newMouseX, newMouseY, mouseOnCenterX;
     private final AtomicBoolean isManualControl = new AtomicBoolean();
+    private final AtomicBoolean isBuilding = new AtomicBoolean();
     private final ArrayList<Cube> activeManualCube = new ArrayList<>();
     private int lastDir;
     //TODO UI
@@ -56,6 +58,7 @@ public class GameController implements Initializable {
         rubicGroup.setManaged(false);
         mainScene.getChildren().add(subScene);
 
+        isBuilding.set(false);
         isManualControl.set(false);
         isRotate.set(false);
         r_size = 3;
@@ -109,20 +112,21 @@ public class GameController implements Initializable {
 
     private void onCenterReleased() {
         if (isManualControl.get()) {
+            isRotate.set(true);
             for (var cube: activeManualCube){
                 setRotateToEnd(cube, lastDir);
             }
 
+            activeManualCube.clear();
             isManualControl.set(false);
         }
     }
 
     private void onCenterClicked(MouseEvent event, Cube center){
-        if(!isManualControl.get() && event.isPrimaryButtonDown() && !isRotate.get()){
+        if(!isManualControl.get() && event.isPrimaryButtonDown() && !isRotate.get() && activeManualCube.isEmpty() && !isBuilding.get()){
             isManualControl.set(true);
 
             mouseOnCenterX = event.getSceneX();
-            activeManualCube.clear();
             for(var cube: boxes) {
                 long x = -1;
                 if(center == rc){
@@ -180,24 +184,26 @@ public class GameController implements Initializable {
                 new Translate(0,0,-120)
         );
 
-        //TODO smooth rotation
+        subScene.setOnMousePressed(event -> {
+            if(event.isSecondaryButtonDown()) {
+                newMouseX = event.getSceneX();
+                newMouseY = event.getSceneY();
+            }
+        });
         subScene.setOnMouseDragged(event -> {
-            newMouseX = event.getSceneX();
-            newMouseY = event.getSceneY();
-
-            float dx = (float) (newMouseX - oldMouseX);
-            float dy = (float) (newMouseY - oldMouseY);
+            float dx = (float) (newMouseX - event.getSceneX());
+            float dy = (float) (newMouseY - event.getSceneY());
 
             if (event.isSecondaryButtonDown()) {
-                verticalAngle -= dy * mouseSensitivity;
+                verticalAngle += dy * mouseSensitivity;
                 horizontalAngle += dx * mouseSensitivity;
             }
 
             xRotate.setAngle(+verticalAngle);
             yRotate.setAngle(-horizontalAngle);
 
-            oldMouseX = newMouseX;
-            oldMouseY = newMouseY;
+            newMouseX = event.getSceneX();
+            newMouseY = event.getSceneY();
         });
 
         camera.setNearClip(1);
@@ -213,7 +219,8 @@ public class GameController implements Initializable {
             currentFormula = currentFormula.substring(0, currentFormula.length()-1);
             if(currentFormula.length() == 0) {
                 timeline.stop();
-                currentFormula = null;
+                currentFormula = "";
+                isBuilding.set(false);
             }
         }
     }
@@ -325,8 +332,6 @@ public class GameController implements Initializable {
     }
 
     public void disBuild(String formula){
-        for(var cube: boxes)
-            cube.getTransforms().clear();
         for (int u = 0; u < formula.length(); u++) {
             if(Character.isUpperCase(formula.charAt(u)))
                 build(Character.toLowerCase(formula.charAt(u)), true);
@@ -576,8 +581,6 @@ public class GameController implements Initializable {
     public void setRotateToEnd(Cube box, int dir){
         Rotate rotate = (Rotate) box.getTransforms().get(0);
 
-        System.out.println(box.getTransforms().toArray(new Transform[0]).length);
-
         box.getTransforms().remove(rotate);
         var tr = box.getTransforms().toArray(new Transform[0]);
         box.getTransforms().clear();
@@ -589,69 +592,13 @@ public class GameController implements Initializable {
         box.rotateAnimation.start();
     }
 
-    public void rotateR() {
-        if(!isRotate.get())
-            build('R', false);
-    }
-
-    public void rotateL() {
-        if(!isRotate.get())
-            build('L', false);
-    }
-
-    public void rotateU() {
-        if(!isRotate.get())
-            build('U', false);
-    }
-
-    public void rotateD() {
-        if(!isRotate.get())
-            build('D', false);
-    }
-
-    public void rotateF() {
-        if(!isRotate.get())
-            build('F', false);
-    }
-
-    public void rotateB() {
-        if(!isRotate.get())
-            build('B', false);
-    }
-
-    public void rotate_r() {
-        if(!isRotate.get())
-            build('r', false);
-    }
-
-    public void rotate_l() {
-        if(!isRotate.get())
-            build('l', false);
-    }
-
-    public void rotate_u() {
-        if(!isRotate.get())
-            build('u', false);
-    }
-
-    public void rotate_d() {
-        if(!isRotate.get())
-            build('d', false);
-    }
-
-    public void rotate_f() {
-        if(!isRotate.get())
-            build('f', false);
-    }
-
-    public void rotate_b() {
-        if(!isRotate.get())
-            build('b', false);
+    public void onRotateButtonAction(ActionEvent event){
+        if(!isRotate.get() && !isBuilding.get())
+            build(((Button)event.getSource()).getText().charAt(0), false);
     }
 
     public void disBuildOnAction() {
         if (!isRotate.get()) {
-            isRotate.set(true);
             boxes.forEach(cube -> cube.getTransforms().clear());
             currentFormula = getFormula();
             disBuild(currentFormula);
@@ -659,8 +606,8 @@ public class GameController implements Initializable {
     }
 
     public void buildOnAction() {
-        if (isRotate.get() && currentFormula != null && timeline.getStatus() != Animation.Status.RUNNING) {
-            isRotate.set(false);
+        if (!isRotate.get() && !currentFormula.isEmpty() && timeline.getStatus() == Animation.Status.STOPPED) {
+            isBuilding.set(true);
             timeline.play();
         }
     }
