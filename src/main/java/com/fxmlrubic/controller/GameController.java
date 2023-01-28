@@ -2,18 +2,16 @@ package com.fxmlrubic.controller;
 
 import com.fxmlrubic.game.Cube;
 import com.fxmlrubic.game.RotateAnimation;
-import com.fxmlrubic.game.RubicGroup;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
 import javafx.geometry.Point3D;
-import javafx.scene.Camera;
-import javafx.scene.Group;
-import javafx.scene.PerspectiveCamera;
+import javafx.scene.*;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.TriangleMesh;
 import javafx.scene.transform.Rotate;
@@ -30,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class GameController implements Initializable {
     public Group mainScene;
     public Group rubicGroup;
-    public RubicGroup subScene;
+    public SubScene subScene;
     public ArrayList<Cube> boxes;
     public int size;
     public int r_size;
@@ -53,7 +51,8 @@ public class GameController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         rubicGroup = new Group();
-        subScene = new RubicGroup(rubicGroup);
+        subScene = new SubScene(rubicGroup, 600,600, true, SceneAntialiasing.BALANCED);
+        subScene.setFill(Color.ALICEBLUE);
         rubicGroup.setManaged(false);
         mainScene.getChildren().add(subScene);
 
@@ -119,7 +118,7 @@ public class GameController implements Initializable {
     }
 
     private void onCenterClicked(MouseEvent event, Cube center){
-        if(!isManualControl.get() && event.isPrimaryButtonDown()){
+        if(!isManualControl.get() && event.isPrimaryButtonDown() && !isRotate.get()){
             isManualControl.set(true);
 
             mouseOnCenterX = event.getSceneX();
@@ -222,7 +221,7 @@ public class GameController implements Initializable {
     private Cube createCube(double i, double j, double k, double size){
         Image image;
         try {
-            image = new Image(new File("src/main/resources/com/fxmlrubic/1.png").toURI().toURL().toExternalForm());
+            image = new Image(new File("src/main/resources/com/fxmlrubic/cube.png").toURI().toURL().toExternalForm());
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }

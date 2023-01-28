@@ -10,18 +10,10 @@ public class RotateAnimation extends AnimationTimer {
     Rotate rotate;
     double step;
     Cube cube;
-    FunctionalInterface action;
     public RotateAnimation(Cube cube, Rotate rotate, double step){
         this.rotate = rotate;
         this.step = step;
         this.cube = cube;
-    }
-
-    public RotateAnimation(Cube cube, Rotate rotate, double step, FunctionalInterface action){
-        this.rotate = rotate;
-        this.step = step;
-        this.cube = cube;
-        this.action = action;
     }
 
     @Override
